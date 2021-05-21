@@ -72,4 +72,17 @@ router.delete("/", async (req, res) => {
   }
 });
 
+router.get("/messages/:room", async (req, res) => {
+  try {
+    const room = await Room.findOne({ name: req.params.roomName });
+
+    const messages = room.messages || [];
+
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json(error);
+    console.log(error);
+  }
+});
+
 module.exports = router;
