@@ -5,6 +5,7 @@ const roomSchema = mongoose.Schema({
     type: String,
     required: true,
     lowercase: true,
+    unique: true,
   },
   messages: {
     type: Array,

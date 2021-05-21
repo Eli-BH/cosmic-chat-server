@@ -10,14 +10,23 @@ router.post("/new_room", async (req, res) => {
   try {
     const existingRoom = await Room.findOne({ name: req.body.roomName });
 
+    //check if the room exists already
     if (existingRoom) return res.status(409).send("Room already exists");
 
+    //create a new room
     const newRoom = await new Room({
       name: req.body.roomName,
-      admin: req.body.user,
+      admin: req.body.username,
     });
 
-    newRoom.save();
+    //add the admins to the users array
+    await newRoom.updateOne({
+      $push: {
+        users: req.body.username,
+      },
+    });
+
+    await newRoom.save();
 
     res.status(201).json(newRom);
   } catch (error) {
