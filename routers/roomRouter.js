@@ -39,4 +39,28 @@ router.get("/", async (req, res) => {
   }
 });
 
+//route to delete a room
+router.delete("/", async (req, res) => {
+  try {
+    //get room
+    const room = await Room.findOne({ name: req.body.roomName });
+
+    //user
+    const user = req.body.username;
+
+    //check if user is not admin
+    if (room.admin !== user) return res.status(401).send("Not authorized");
+
+    //delete the room if admin
+
+    await Room.findOneAndDelete({ name: req.body.roomName });
+
+    //send success message
+    res.status(200).send("Room deleted");
+  } catch (error) {
+    console.log(error);
+    res.status(500).json(error);
+  }
+});
+
 module.exports = router;
