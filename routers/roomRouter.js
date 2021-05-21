@@ -22,7 +22,7 @@ router.post("/new_room", async (req, res) => {
     //add the admins to the users array
     await newRoom.updateOne({
       $push: {
-        users: req.body.username,
+        currentUsers: req.body.username,
       },
     });
 
@@ -72,13 +72,39 @@ router.delete("/", async (req, res) => {
   }
 });
 
-router.get("/messages/:room", async (req, res) => {
+router.get("/messages/:roomName", async (req, res) => {
   try {
+    //find the room
     const room = await Room.findOne({ name: req.params.roomName });
-
+    //get the messages array
     const messages = room.messages || [];
 
     res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json(error);
+    console.log(error);
+  }
+});
+
+router.patch("/enter_room", async (req, res) => {
+  try {
+    //find the room
+    const room = await Room.findOne({ name: req.body.roomName });
+
+    //return if the room is not found
+    if (!room) return res.status(404).send("No room with that name");
+
+    //add user to current users array
+    await room.updateOne({
+      $push: {
+        currentUsers: req.body.username,
+      },
+    });
+
+    await room.save();
+    //return the room object
+    //will de-structure the room array from it.
+    res.status(200).json(room);
   } catch (error) {
     res.status(500).json(error);
     console.log(error);

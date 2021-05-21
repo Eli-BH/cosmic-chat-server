@@ -11,7 +11,7 @@ const roomSchema = mongoose.Schema({
     type: Array,
     default: [],
   },
-  users: {
+  currentUsers: {
     type: Array,
     default: [],
   },
