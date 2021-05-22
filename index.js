@@ -43,7 +43,7 @@ const server = app.listen(port, () => {
 //connect through socketIO
 const io = socket(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://cosmic-chatcord.herokuapp.com",
   },
 });
 
