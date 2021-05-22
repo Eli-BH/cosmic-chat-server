@@ -53,6 +53,8 @@ io.on("connection", (socket) => {
   //random id from socket io
   console.log(socket.id, "User connected");
 
+  //socket that tells if user is in the room
+
   socket.on("joinRoom", (data) => {
     socket.join(data.roomName);
     let userObj = {
