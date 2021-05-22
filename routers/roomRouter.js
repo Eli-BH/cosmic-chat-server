@@ -3,6 +3,9 @@ const router = express.Router();
 const Room = require("../models/Room");
 const User = require("../models/User");
 
+const upload = require("../services/ImageUpload");
+const singleUpload = upload.single("image");
+
 //route to for a new room
 //adds the user as admin by username
 
@@ -146,6 +149,76 @@ router.put("/exit_room", async (req, res) => {
   } catch (error) {
     res.status(500).json(error);
     console.log(error);
+  }
+});
+
+router.post("/new_message", async (req, res) => {
+  try {
+    const currentRoom = await Room.findOne({ roomName: req.body.roomName });
+
+    await currentRoom.updateOne({
+      $push: {
+        messages: {
+          text: req.body.text,
+          author: req.body.author,
+          time: Date.now(),
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json(error);
+    console.log(error);
+  }
+});
+
+router.get("/messages/:room", async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomName: req.params.room });
+
+    const messages = room.messages || [];
+
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json(error);
+    console.log(error);
+  }
+});
+
+//make a post with an image
+router.post("/new_img_message", async (req, res) => {
+  try {
+    singleUpload(req, res, async (err) => {
+      if (err) {
+        return res.json({
+          success: false,
+          errors: {
+            title: "Image Upload Error",
+            detail: err.message,
+            error: err,
+          },
+        });
+      }
+
+      const currentRoom = await Room.findOne({ roomName: req.body.roomName });
+
+      await currentRoom.updateOne({
+        $push: {
+          messages: {
+            text: req.body.text,
+            author: req.body.author,
+            img: req.file.location,
+            time: Date.now(),
+          },
+        },
+      });
+
+      currentRoom.save();
+
+      console.log(req.body);
+      res.status(200).json(req.file.location);
+    });
+  } catch (error) {
+    res.status(500).json(error);
   }
 });
 

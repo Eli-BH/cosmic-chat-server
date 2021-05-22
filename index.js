@@ -81,7 +81,8 @@ io.on("connection", (socket) => {
     // );
 
     console.log(`User has entered ${data.roomName} room.`);
-    console.log(currentUsers);
+
+    io.to(data.roomName).emit("sendList", currentUsers);
   });
 
   socket.on("sendMessage", (data) => {
@@ -97,6 +98,7 @@ io.on("connection", (socket) => {
         (obj) => obj.id != socket.id
       );
     }
-    console.log(currentUsers);
+
+    io.emit("sendList", currentUsers);
   });
 });
