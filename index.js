@@ -6,6 +6,7 @@ const app = express();
 const socket = require("socket.io");
 const authRoutes = require("./routers/authRouter");
 const userRoutes = require("./routers/userRouter");
+const roomRoutes = require("./routers/roomRouter");
 
 //middleware
 app.use(cors());
@@ -14,6 +15,7 @@ app.use(express.json());
 //app routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/room", roomRoutes);
 
 //test route
 app.get("/", (req, res) => {
@@ -45,7 +47,56 @@ const io = socket(server, {
   },
 });
 
+let currentUsers = {};
+
 io.on("connection", (socket) => {
   //random id from socket io
   console.log(socket.id, "User connected");
+
+  socket.on("joinRoom", (data) => {
+    socket.join(data.roomName);
+    let userObj = {
+      username: data.username,
+      id: socket.id,
+    };
+    if (!currentUsers[data.roomName]) {
+      currentUsers[data.roomName] = [];
+      let existingUser = currentUsers[data.roomName].find(
+        (user) => user.username === data.username
+      );
+      if (!existingUser) {
+        currentUsers[data.roomName].push(userObj);
+      }
+    } else {
+      let existingUser = currentUsers[data.roomName].find(
+        (user) => user.username === data.username
+      );
+      if (!existingUser) {
+        currentUsers[data.roomName].push(userObj);
+      }
+    }
+
+    // currentUsers = currentUsers[data.roomName].filter(
+    //   (obj) => obj.username !== undefined
+    // );
+
+    console.log(`User has entered ${data.roomName} room.`);
+    console.log(currentUsers);
+  });
+
+  socket.on("sendMessage", (data) => {
+    console.log(data);
+    socket.to(data.room).emit("receiveMessage", data.content);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User Disconnected");
+
+    for (const item in currentUsers) {
+      currentUsers[item] = currentUsers[item].filter(
+        (obj) => obj.id != socket.id
+      );
+    }
+    console.log(currentUsers);
+  });
 });

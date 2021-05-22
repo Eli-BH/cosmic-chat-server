@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Room = require("../models/Room");
-const User = require("../modules/User");
+const User = require("../models/User");
 
 //route to for a new room
 //adds the user as admin by username
@@ -15,20 +15,24 @@ router.post("/new_room", async (req, res) => {
 
     //create a new room
     const newRoom = await new Room({
-      name: req.body.roomName,
+      roomName: req.body.roomName,
       admin: req.body.username,
     });
 
-    //add the admins to the users array
-    await newRoom.updateOne({
+    //look for the user by username
+    const user = await User.findOne({ username: req.body.username });
+
+    if (!user) return res.status(404).send("User not found");
+
+    await user.updateOne({
       $push: {
-        currentUsers: req.body.username,
+        roomAdmin: req.body.roomName,
       },
     });
 
     await newRoom.save();
 
-    res.status(201).json(newRom);
+    res.status(201).json(newRoom);
   } catch (error) {
     console.log(error);
     res.status(500).send(error);
@@ -55,14 +59,22 @@ router.delete("/", async (req, res) => {
     const room = await Room.findOne({ name: req.body.roomName });
 
     //user
-    const user = req.body.username;
+    const user = await User.findOne({ username: req.body.username });
 
     //check if user is not admin
-    if (room.admin !== user) return res.status(401).send("Not authorized");
+    if (room.admin !== user.username)
+      return res.status(401).send("Not authorized");
 
     //delete the room if admin
 
     await Room.findOneAndDelete({ name: req.body.roomName });
+
+    //take room from users admin array
+    await user.updateOne({
+      $pull: {
+        roomAdmin: room.roomName,
+      },
+    });
 
     //send success message
     res.status(200).send("Room deleted");
@@ -72,21 +84,47 @@ router.delete("/", async (req, res) => {
   }
 });
 
-router.get("/messages/:roomName", async (req, res) => {
+router.get("/current_room/:roomName", async (req, res) => {
   try {
     //find the room
-    const room = await Room.findOne({ name: req.params.roomName });
-    //get the messages array
-    const messages = room.messages || [];
+    const room = await Room.findOne({ roomName: req.params.roomName });
+    //check if room exists
+    if (!room) return res.status(404).send("room not found");
 
-    res.status(200).json(messages);
+    res.status(200).json(room);
   } catch (error) {
     res.status(500).json(error);
     console.log(error);
   }
 });
 
-router.patch("/enter_room", async (req, res) => {
+//route to enter the currentUser array
+
+router.put("/enter_room", async (req, res) => {
+  try {
+    //find the room
+    const room = await Room.findOne({ roomName: req.body.roomName });
+
+    //return if the room is not found
+    if (!room) return res.status(404).send("No room with that name");
+
+    //add user to current users array
+
+    if (!room.currentUsers.includes(req.body.username))
+      room.currentUsers.push(req.body.username);
+
+    await room.save();
+    //return the room object
+    //will de-structure the room array from it.
+    res.status(200).json(room);
+  } catch (error) {
+    res.status(500).json(error);
+    console.log(error);
+  }
+});
+
+//route to exit the currentUser array
+router.put("/exit_room", async (req, res) => {
   try {
     //find the room
     const room = await Room.findOne({ name: req.body.roomName });
@@ -94,9 +132,9 @@ router.patch("/enter_room", async (req, res) => {
     //return if the room is not found
     if (!room) return res.status(404).send("No room with that name");
 
-    //add user to current users array
+    //pull user from current users array
     await room.updateOne({
-      $push: {
+      $pull: {
         currentUsers: req.body.username,
       },
     });
