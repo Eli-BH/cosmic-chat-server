@@ -12,7 +12,7 @@ const singleUpload = upload.single("image");
 router.post("/new_room", async (req, res) => {
   try {
     const existingRoom = await Room.findOne({ name: req.body.roomName });
-
+    if (!req.body.username) return res.status(400).send("No username");
     //check if the room exists already
     if (existingRoom) return res.status(409).send("Room already exists");
 
@@ -23,6 +23,7 @@ router.post("/new_room", async (req, res) => {
     });
 
     //look for the user by username
+
     const user = await User.findOne({ username: req.body.username });
 
     if (!user) return res.status(404).send("User not found");
@@ -56,28 +57,10 @@ router.get("/", async (req, res) => {
 });
 
 //route to delete a room
-router.delete("/", async (req, res) => {
+router.delete("/:roomName/:username", async (req, res) => {
   try {
     //get room
-    const room = await Room.findOne({ name: req.body.roomName });
-
-    //user
-    const user = await User.findOne({ username: req.body.username });
-
-    //check if user is not admin
-    if (room.admin !== user.username)
-      return res.status(401).send("Not authorized");
-
-    //delete the room if admin
-
-    await Room.findOneAndDelete({ name: req.body.roomName });
-
-    //take room from users admin array
-    await user.updateOne({
-      $pull: {
-        roomAdmin: room.roomName,
-      },
-    });
+    await Room.findOneAndDelete({ roomName: req.params.roomName });
 
     //send success message
     res.status(200).send("Room deleted");
